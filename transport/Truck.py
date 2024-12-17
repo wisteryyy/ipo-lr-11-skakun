@@ -1,7 +1,7 @@
 from .Vehicle import Vehicle
 
 class Truck(Vehicle):
-    _id_counter = 1  # Счетчик для уникальных ID
+    _id_counter = 1  # счетчик для уникальных ID
     def __init__(self, capacity, color):
         super().__init__(capacity)
         if not isinstance(color, str) or not color.strip(): # проверка на всякий бред по типу пробела вместо строки
