@@ -41,11 +41,7 @@ class TransportCompanyApp: # класс TransportCompanyApp, который пр
                         continue
                     self.company.add_vehicle(vehicle)
         except FileNotFoundError:
-            print("Файл dump_vehicles.json не найден.")
-        except json.JSONDecodeError:
-            print("Ошибка при декодировании JSON.")
-        except Exception as e:
-            print(f"Произошла ошибка: {e}")
+            return []
 
     def save_data_to_json_clients(self, data): # метод для сохранения данных клиентов в JSON-файл
         data_to_save = [client.to_dict() for client in data] # преобразуем каждый объект клиента в словарь с помощью метода to_dict() и сохраняем в список
@@ -146,6 +142,25 @@ class TransportCompanyApp: # класс TransportCompanyApp, который пр
         menubar.add_cascade(label="Меню", menu=export_menu) # добавляем подменю в главное меню
         self.root.config(menu=menubar) # настраиваем главный экран для использования созданного меню
 
+    def export_results(self): # метод для экспорта результатов распределения грузов в CSV файл
+        filename = "cargo_distribution_results.csv" # устанавливаем имя файла для сохранения результатов
+        
+        try:
+            with open(filename, mode='w', newline='', encoding='utf-8') as file: # открываем файл для записи, создавая его, если он не существует
+                writer = csv.writer(file) # создаем объект writer для записи в CSV файл
+                writer.writerow(["Тип транспорта", "Грузоподъемность", "Загруженные клиенты"]) # записываем заголовки столбцов
+
+                for vehicle in self.company.vehicles: # проходим по всем транспортным средствам в компании
+                    writer.writerow([type(vehicle).__name__, vehicle.capacity, # записываем тип транспорта, грузоподъемность и список загруженных клиентов
+                                     ', '.join([client.name for client in vehicle.clients_list]) if vehicle.clients_list else "Нет загруженных клиентов"])
+            
+            messagebox.showinfo("Экспорт результата", f"Результаты успешно экспортированы в файл: {filename}") # выводим сообщение об успешном экспорте результатов
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось экспортировать результаты: {e}")
+
+    def show_about(self): # метод для отображения информации о программе
+        messagebox.showinfo("О программе", "Транспортная Компания Экспресс\nЛабораторная работа №12\nВариант 1\nВыполнила: София Скакун (70%) и AI Chat (30%)")
+
     def open_new_clientsworkwindow(self): # для открытия нового окна работы с клиентами
         self.root.withdraw() # скрываем главное окно приложения
         new_window = tk.Toplevel(self.root) # создаем новое верхнее окно
@@ -209,26 +224,32 @@ class TransportCompanyApp: # класс TransportCompanyApp, который пр
         tk.Button(self.client_window, text="Сохранить", command=self.save_client).grid(row=4, column=0, columnspan=1)  
         tk.Button(self.client_window, text="Отмена", command=self.client_window.destroy).grid(row=4, column=1, columnspan=2)  
 
-    def save_client(self): # метод для сохранения данных нового клиента
-        name = self.client_name_entry.get() # получаем имя клиента из поля ввода
-        weight = self.client_weight_entry.get() # получаем вес груза из поля ввода
-        vip_status = self.client_vip_var.get() # получаем состояние VIP статуса
+    def save_client(self): # метод для сохранения данных нового клиента 
+        name = self.client_name_entry.get() # получаем имя клиента из поля ввода 
+        weight = self.client_weight_entry.get() # получаем вес груза из поля ввода 
+        vip_status = self.client_vip_var.get() # получаем состояние VIP статуса 
 
-        if len(name) < 2 or not name.replace(" ", "").isalpha():
+        if not name.isalpha() or len(name) < 2: # проверяем, что имя состоит только из букв и длина не менее 2
             tk.messagebox.showerror("Ошибка", "Имя клиента должно содержать только буквы и быть не менее 2 символов.")
             return
 
-        if not weight.isdigit() or not (0 < float(weight) <= 10000):
-            tk.messagebox.showerror("Ошибка", "Вес груза должен быть положительным числом и не более 10000 кг.")
+        try:
+            weight = float(weight) # пробуем преобразовать вес в число
+            if weight <= 0 or weight > 10000: # проверяем, что вес положительный и не превышает 10000
+                tk.messagebox.showerror("Ошибка", "Вес груза должен быть положительным числом и не более 10000 кг.")
+                return
+        except ValueError:
+            tk.messagebox.showerror("Ошибка", "Вес груза должен быть числом.")
             return
 
-        client = Client(name, float(weight), vip_status) # создаем объект клиента с введенными данными
-        self.company.add_client(client) # добавляем клиента в компанию
-        self.client_table.insert("", "end", values=(name, weight, "Да" if vip_status else "Нет")) # вставляем данные клиента в таблицу
-        self.save_data_to_json_clients(self.company.clients)
+        client = Client(name, weight, vip_status) # создаем объект клиента с введенными данными 
+        self.company.add_client(client) # добавляем клиента в компанию 
 
-        self.client_window.destroy() # закрываем окно добавления клиента
-        self.status.config(text="Клиент добавлен") # обновляем статус с сообщением о добавлении клиента
+        self.client_table.insert("", "end", values=(name, weight, "Да" if vip_status else "Нет")) # вставляем данные клиента в таблицу 
+        self.save_data_to_json_clients(self.company.clients) 
+
+        self.client_window.destroy() # закрываем окно добавления клиента 
+        self.status.config(text="Клиент добавлен") # обновляем статус с сообщением о добавлении клиента 
 
     def edit_client(self, event): # метод для редактирования выбранного клиента
         selected_item = self.client_table.selection() # получаем выбранный элемент из таблицы клиентов
@@ -274,12 +295,17 @@ class TransportCompanyApp: # класс TransportCompanyApp, который пр
         weight = self.client_weight_entry.get() # получаем новый вес груза из поля ввода
         vip_status = self.client_vip_var.get() # получаем новое состояние VIP статуса
 
-        if len(name) < 2 or not all(char.isalpha() or char.isspace() for char in name):
+        if not name.isalpha() or len(name) < 2: # проверяем, что имя состоит только из букв и длина не менее 2
             tk.messagebox.showerror("Ошибка", "Имя клиента должно содержать только буквы и быть не менее 2 символов.")
             return
 
-        if not weight.isdigit() or not (0 < float(weight) <= 10000):
-            tk.messagebox.showerror("Ошибка", "Вес груза должен быть положительным числом и не более 10000 кг.")
+        try:
+            weight = float(weight) # пробуем преобразовать вес в число
+            if weight <= 0 or weight > 10000: # проверяем, что вес положительный и не превышает 10000
+                tk.messagebox.showerror("Ошибка", "Вес груза должен быть положительным числом и не более 10000 кг.")
+                return
+        except ValueError:
+            tk.messagebox.showerror("Ошибка", "Вес груза должен быть числом.")
             return
 
         for client in self.company.clients: # перебираем список клиентов компании для обновления данных
@@ -521,13 +547,14 @@ class TransportCompanyApp: # класс TransportCompanyApp, который пр
         self.result_text.pack(pady=10)
 
         # проверяем, есть ли клиенты для распределения грузов
-        if not self.company.clients: # если список клиентов пуст
+        if not self.company.clients and not self.company.vehicles:
+            self.result_text.insert(tk.END, "В данный момент нет клиентов и транспортных средств для распределения грузов.\n")
+        elif not self.company.clients:  # если список клиентов пуст
             self.result_text.insert(tk.END, "В данный момент нет клиентов для распределения грузов.\n")
-        elif not self.company.vehicles: # если список транспортных средств пуст
+        elif not self.company.vehicles:  # если список транспортных средств пуст
             self.result_text.insert(tk.END, "В данный момент нет транспортных средств для распределения грузов.\n")
-        else: # если есть и клиенты, и транспортные средства
-            self.company.optimize_cargo_distribution() # распределяем груз между транспортными средствами
-            
+        else:  # если есть и клиенты, и транспортные средства
+            self.company.optimize_cargo_distribution()  # распределяем груз между транспортными средствами
             self.result_text.insert(tk.END, "Распределение грузов выполнено:\n")
             for vehicle in self.company.vehicles: # проходим по всем транспортным средствам
                 self.result_text.insert(tk.END, f"Транспортное средство: {vehicle}\n")
@@ -536,30 +563,11 @@ class TransportCompanyApp: # класс TransportCompanyApp, который пр
                     for client in vehicle.clients_list: # проходим по списку загруженных клиентов
                         self.result_text.insert(tk.END, f" - Имя: {client.name}, Вес груза: {client.cargo_weight}, VIP-статус: {client.is_vip}\n")
                 else: # если у транспортного средства нет загруженных клиентов
-                    self.result_text.insert(tk.END, " - Не загружено ни одного клиента. Не хватает грузоподъемности :( \n")
+                    self.result_text.insert(tk.END, " - Не загружено ни одного клиента. Не хватает грузоподъемности или все клиенты уже загружены в другие транспортные средства :( \n")
 
     def close_new_window(self, window): # метод для закрытия указанного окна
         window.destroy() # закрываем указанное окно
         self.root.deiconify() # возвращаем главное окно на передний план (отображаем его)
-
-    def export_results(self): # метод для экспорта результатов распределения грузов в CSV файл
-        filename = "cargo_distribution_results.csv" # устанавливаем имя файла для сохранения результатов
-        
-        try:
-            with open(filename, mode='w', newline='', encoding='utf-8') as file: # открываем файл для записи, создавая его, если он не существует
-                writer = csv.writer(file) # создаем объект writer для записи в CSV файл
-                writer.writerow(["Тип транспорта", "Грузоподъемность", "Загруженные клиенты"]) # записываем заголовки столбцов
-
-                for vehicle in self.company.vehicles: # проходим по всем транспортным средствам в компании
-                    writer.writerow([type(vehicle).__name__, vehicle.capacity, # записываем тип транспорта, грузоподъемность и список загруженных клиентов
-                                     ', '.join([client.name for client in vehicle.clients_list]) if vehicle.clients_list else "Нет загруженных клиентов"])
-            
-            messagebox.showinfo("Экспорт результата", f"Результаты успешно экспортированы в файл: {filename}") # выводим сообщение об успешном экспорте результатов
-        except Exception as e:
-            messagebox.showerror("Ошибка", f"Не удалось экспортировать результаты: {e}")
-
-    def show_about(self): # метод для отображения информации о программе
-        messagebox.showinfo("О программе", "Транспортная Компания Экспресс\nЛабораторная работа №12\nВариант 1\nВыполнила: София Скакун (70%) и AI Chat (30%)")
 
 if __name__ == "__main__": # проверяем, является ли данный файл основным модулем, который запускается
     root = tk.Tk() # создаем главное окно приложения
