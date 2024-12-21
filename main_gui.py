@@ -404,19 +404,6 @@ class TransportCompanyApp: # класс TransportCompanyApp, который пр
         self.save_data_to_json_vehicles(self.company.vehicles) # сохраняем обновленный список транспортных средств в JSON файл
         self.status.config(text="Транспорт удален") # обновляем статус с сообщением об удалении транспорта
 
-    def on_transport_type_selected(self, event): # метод для обработки выбора типа транспорта
-        transport_type = self.transport_type.get() # получаем выбранный тип транспорта
-        if transport_type == "Поезд": # если выбран поезд
-            self.color_label.grid_remove() # скрываем метку и поле ввода для цвета
-            self.color_entry.grid_remove() # скрываем поле ввода для цвета
-            self.cars_label.grid() # показываем метку для количества вагонов
-            self.cars_entry.grid() # показываем поле ввода для количества вагонов
-        elif transport_type == "Грузовик": # если выбран грузовик
-            self.cars_label.grid_remove()  # скрываем метку и поле ввода для количества вагонов
-            self.cars_entry.grid_remove()  # скрываем поле ввода для количества вагонов
-            self.color_label.grid() # показываем метку для цвета
-            self.color_entry.grid() # показываем поле ввода для цвета
-
     def save_transport(self): # метод для сохранения нового транспортного средства
         transport_type = self.transport_type.get() # получаем тип транспорта из выпадающего списка
         capacity = self.capacity.get() # получаем грузоподъемность из поля ввода
@@ -469,6 +456,7 @@ class TransportCompanyApp: # класс TransportCompanyApp, который пр
         self.transport_type = ttk.Combobox(self.transport_window, values=["Грузовик", "Поезд"])
         self.transport_type.set(vehicle_data[1])
         self.transport_type.grid(row=0, column=1)
+        self.transport_type.bind("<<ComboboxSelected>>", self.on_transport_type_selected) # привязываем обработчик выбора типа транспорта
 
         tk.Label(self.transport_window, text="Грузоподъемность:").grid(row=1, column=0)
         self.capacity = tk.Entry(self.transport_window)
@@ -487,8 +475,23 @@ class TransportCompanyApp: # класс TransportCompanyApp, который пр
         self.cars_entry.insert(0, vehicle_data[4] if len(vehicle_data) > 4 else "")
         self.cars_entry.grid(row=3, column=1)
 
+        self.on_transport_type_selected(None) # вызываем метод для удаления лишних полей в зависимости от типа транспорта
+
         tk.Button(self.transport_window, text="Сохранить", command=lambda: self.save_edited_vehicle(vehicle_data[0])).grid(row=4, column=0, columnspan=1)  
         tk.Button(self.transport_window, text="Отмена", command=self.transport_window.destroy).grid(row=4, column=1, columnspan=2)
+
+    def on_transport_type_selected(self, event): # метод для обработки выбора типа транспорта
+        transport_type = self.transport_type.get() # получаем выбранный тип транспорта
+        if transport_type == "Поезд": # если выбран поезд
+            self.color_label.grid_remove() # скрываем метку и поле ввода для цвета
+            self.color_entry.grid_remove() # скрываем поле ввода для цвета
+            self.cars_label.grid() # показываем метку для количества вагонов
+            self.cars_entry.grid() # показываем поле ввода для количества вагонов
+        elif transport_type == "Грузовик": # если выбран грузовик
+            self.cars_label.grid_remove() # скрываем метку и поле ввода для количества вагонов
+            self.cars_entry.grid_remove() # скрываем поле ввода для количества вагонов
+            self.color_label.grid() # показываем метку для цвета
+            self.color_entry.grid() # показываем поле ввода для цвета
 
     def save_edited_vehicle(self, vehicle_id): # метод для сохранения изменений в редактируемом транспортном средстве
         transport_type = self.transport_type.get() # получаем тип транспорта из выпадающего списка
